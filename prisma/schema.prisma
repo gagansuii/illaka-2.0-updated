@@ -1,0 +1,149 @@
+// Prisma schema for ILAKA
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl= env("SHADOW_DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  password         String
+  role             Role     @default(USER)
+  latitude         Float?
+  longitude        Float?
+  radiusPreference Int      @default(5000)
+  subscriptionType String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  events           Event[]  @relation("OrganizerEvents")
+  rsvps            RSVP[]
+  likes            Like[]
+  shares           Share[]
+  attendance       Attendance[]
+  subscriptions    Subscription[]
+  payments         Payment[]
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  bannerUrl   String
+  badgeIcon   String
+  latitude    Float
+  longitude   Float
+  location    Unsupported("geography")
+  startTime   DateTime
+  endTime     DateTime
+  visibility  Visibility  @default(PUBLIC)
+  capacity    Int
+  organizerId String
+  isPaid      Boolean     @default(false)
+  engagementScore Int     @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  organizer   User        @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  rsvps       RSVP[]
+  likes       Like[]
+  shares      Share[]
+  attendance  Attendance[]
+  payments    Payment[]
+
+  @@index([location], type: Gist)
+  @@index([organizerId])
+  @@index([visibility])
+}
+
+model RSVP {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+}
+
+model Share {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String
+  status    String
+  plan      String
+  startsAt  DateTime
+  endsAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  userId        String
+  eventId       String?
+  provider      String
+  providerRef   String
+  amount        Int
+  currency      String
+  status        String
+  reason        String
+  createdAt     DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  event Event? @relation(fields: [eventId], references: [id])
+}

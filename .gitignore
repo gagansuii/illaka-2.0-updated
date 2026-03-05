@@ -1,0 +1,8 @@
+node_modules
+.next
+public/uploads
+tsconfig.tsbuildinfo
+desktop.ini
+.env
+_docx_extract/
+_docx_extract.zip

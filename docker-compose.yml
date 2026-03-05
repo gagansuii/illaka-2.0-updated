@@ -1,0 +1,41 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: ilaka_events
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - appnet
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - appnet
+
+  web:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://postgres:example@db:5432/ilaka_events
+      SHADOW_DATABASE_URL: postgresql://postgres:example@db:5432/ilaka_shadow
+      NEXTAUTH_URL: http://localhost:3000
+      # add other env vars as needed or mount .env
+    depends_on:
+      - db
+      - redis
+    networks:
+      - appnet
+
+volumes:
+  db-data:
+
+networks:
+  appnet:
+    driver: bridge
