@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { useRouteTransition } from '@/components/RouteTransitionProvider';
 import { cn } from '@/lib/utils';
 import { EVENT_CATEGORY_OPTIONS, type EventCategoryKey, formatEventDay, formatEventRange } from '@/lib/event-style';
 
@@ -79,6 +80,7 @@ function UploadDropzone({
 }
 
 export default function CreateEventPage() {
+  const { navigate } = useRouteTransition();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -229,7 +231,7 @@ export default function CreateEventPage() {
     setLoading(false);
 
     if (res.ok) {
-      window.location.href = '/';
+      navigate('/');
       return;
     }
 

@@ -6,11 +6,13 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useRouteTransition } from '@/components/RouteTransitionProvider';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const { navigate } = useRouteTransition();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +32,8 @@ export default function LoginPage() {
       return;
     }
     if (res.url) {
-      window.location.href = res.url;
+      const nextUrl = new URL(res.url, window.location.origin);
+      navigate(`${nextUrl.pathname}${nextUrl.search}`);
     }
   }
 

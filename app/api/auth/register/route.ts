@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDatabaseErrorDetails } from '@/lib/database-errors';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
@@ -26,7 +27,8 @@ export async function POST(req: Request) {
     existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   } catch (err) {
     console.error('Register lookup failed:', err);
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    const details = getDatabaseErrorDetails(err);
+    return NextResponse.json({ error: details.message }, { status: details.status });
   }
   if (existing) return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
 
@@ -42,7 +44,8 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error('User creation failed:', err);
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    const details = getDatabaseErrorDetails(err);
+    return NextResponse.json({ error: details.message }, { status: details.status });
   }
 
   return NextResponse.json({ id: user.id });

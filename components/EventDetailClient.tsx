@@ -210,7 +210,7 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
                 </div>
               </div>
               <div className="rounded-[1.6rem] border border-[var(--line)] bg-[rgba(255,255,255,0.34)] p-4 text-sm leading-6 text-muted dark:bg-[rgba(15,23,42,0.22)]">
-                RSVP flow, payments, and visibility settings stay intact. This page simply gives them a calmer and more persuasive frame.
+                Regitration flow, payments, and visibility settings stay intact. This page simply gives them a calmer and more persuasive frame.
               </div>
             </Card>
           </div>
@@ -297,7 +297,7 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
 
             <div className="space-y-3">
               <Button onClick={rsvp} disabled={loading} size="lg" className="w-full">
-                {loading ? 'Reserving...' : 'RSVP now'}
+                {loading ? 'Reserving...' : 'Register now'}
               </Button>
               {rsvpError ? <p className="text-sm text-red-500">{rsvpError}</p> : null}
               <Button asChild variant="outline" size="lg" className="w-full">

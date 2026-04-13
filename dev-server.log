@@ -1,0 +1,43 @@
+
+> ilaka@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.29.225:3000
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+✓ Starting...
+✓ Ready in 3.1s
+○ Compiling / ...
+ GET / 200 in 12.2s (compile: 11.8s, render: 424ms)
+ GET / 200 in 127ms (compile: 18ms, render: 109ms)
+ GET / 200 in 91ms (compile: 12ms, render: 79ms)
+○ Compiling proxy ...
+ GET /discover 200 in 7.2s (compile: 6.9s, render: 278ms)
+ GET /api/events?lat=17.399151227103093&lng=78.38086516366594&radius=7000 200 in 8.2s (compile: 7.5s, render: 675ms)
+ GET /api/auth/session 200 in 14.8s (compile: 14.8s, render: 62ms)
+○ Compiling /events/new ...
+ GET /discover 200 in 2.1s (compile: 2.0s, render: 94ms)
+ GET /events/new 200 in 5.7s (compile: 3.7s, proxy.ts: 1886ms, render: 98ms)
+ GET /api/events?lat=17.399151227103093&lng=78.38086516366594&radius=5000 200 in 445ms (compile: 414ms, render: 32ms)
+ POST /api/users/location 200 in 1489ms (compile: 1400ms, render: 89ms)
+ GET /events/new 200 in 203ms (compile: 68ms, proxy.ts: 44ms, render: 91ms)
+ GET / 200 in 73ms (compile: 43ms, render: 31ms)
+ GET /api/events?lat=17.399151227103093&lng=78.38086516366594&radius=7000 200 in 156ms (compile: 133ms, render: 24ms)
+ GET /events/new 200 in 51ms (compile: 10ms, proxy.ts: 16ms, render: 26ms)
+ GET / 200 in 38ms (compile: 8ms, render: 30ms)
+ GET /api/events?lat=17.399151227103093&lng=78.38086516366594&radius=7000 200 in 19ms (compile: 5ms, render: 14ms)
+ GET /discover 200 in 38ms (compile: 16ms, render: 22ms)
+ GET /api/events?lat=17.399151227103093&lng=78.38086516366594&radius=5000 200 in 23ms (compile: 12ms, render: 11ms)
+ POST /api/users/location 200 in 36ms (compile: 4ms, render: 32ms)
+ GET /profile 200 in 2.8s (compile: 2.8s, proxy.ts: 19ms, render: 57ms)
+ GET / 200 in 50ms (compile: 13ms, render: 37ms)
+ GET /discover 200 in 71ms (compile: 18ms, render: 53ms)
+ GET /api/events?lat=17.399201584390347&lng=78.3807247085944&radius=7000 200 in 258ms (compile: 225ms, render: 34ms)
+ GET /api/events?lat=17.399201584390347&lng=78.3807247085944&radius=5000 200 in 67ms (compile: 52ms, render: 14ms)
+ POST /api/users/location 200 in 82ms (compile: 16ms, render: 66ms)
+ GET / 200 in 39ms (compile: 8ms, render: 31ms)
+ GET /api/events?lat=17.399201584390347&lng=78.3807247085944&radius=7000 200 in 15ms (compile: 4ms, render: 11ms)

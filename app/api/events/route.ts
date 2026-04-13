@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDatabaseErrorDetails } from '@/lib/database-errors';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
@@ -68,7 +69,8 @@ export async function GET(req: Request) {
     `;
   } catch (err) {
     console.error('Events query failed:', err);
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    const details = getDatabaseErrorDetails(err);
+    return NextResponse.json({ error: details.message, events: [] }, { status: details.status });
   }
 
   return NextResponse.json({ events });

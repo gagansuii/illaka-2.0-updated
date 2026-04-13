@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { CalendarClock, MapPin, Sparkles, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import type { EventSummary } from '@/lib/types';
 import { formatEventDay, formatEventRange, getEventTheme } from '@/lib/event-style';
 
@@ -28,7 +28,7 @@ export function EventPreviewDrawer({
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: theme.accentStrong }}>
               {theme.label}
             </p>
-            <p className="text-sm text-muted">Quick view</p>
+            <DialogDescription className="text-sm text-muted">Quick view</DialogDescription>
           </div>
           <Button
             type="button"
@@ -69,7 +69,9 @@ export function EventPreviewDrawer({
               <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-white/72">
                 {theme.previewLine}
               </p>
-              <h2 className="mt-2 text-3xl font-semibold leading-tight">{event.title}</h2>
+              <DialogTitle asChild>
+                <h2 className="mt-2 text-3xl font-semibold leading-tight">{event.title}</h2>
+              </DialogTitle>
             </div>
           </div>
 
