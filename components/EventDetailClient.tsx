@@ -87,22 +87,22 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
   return (
     <div className="space-y-8">
       <section className="section-shell overflow-hidden p-0">
-          <div className="relative min-h-[420px] overflow-hidden rounded-[2rem]">
-            {event.bannerUrl ? (
-              <ResilientImage
-                src={event.bannerUrl}
-                alt={event.title}
-                className="absolute inset-0 h-full w-full object-cover"
-                fallback={
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
-                  />
-                }
-              />
-            ) : (
-              <div
-                className="absolute inset-0"
+        <div className="relative min-h-[420px] overflow-hidden rounded-[2rem]">
+          {event.bannerUrl ? (
+            <ResilientImage
+              src={event.bannerUrl}
+              alt={event.title}
+              className="absolute inset-0 h-full w-full object-cover"
+              fallback={
+                <div
+                  className="absolute inset-0"
+                  style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
+                />
+              }
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
               style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
             />
           )}
@@ -340,13 +340,8 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
             </div>
 
             <div className="space-y-3">
-<<<<<<< HEAD
-              <Button onClick={rsvp} disabled={loading} size="lg" className="w-full">
-                {loading ? 'Reserving...' : 'Register now'}
-=======
               <Button onClick={rsvp} disabled={loading || joined} size="lg" className="w-full">
                 {loading ? 'Reserving...' : joined ? 'Joined' : 'RSVP now'}
->>>>>>> 3f3a6e4ea82d04b40ea150e5da3bce05260a6f45
               </Button>
               {rsvpError ? <p className="text-sm text-red-500">{rsvpError}</p> : null}
               <Button asChild variant="outline" size="lg" className="w-full">
