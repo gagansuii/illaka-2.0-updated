@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { EventDetailClient } from '@/components/EventDetailClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { sanitizeEventMedia } from '@/lib/media';
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,7 +25,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-      <EventDetailClient event={event} />
+      <EventDetailClient event={sanitizeEventMedia(event)} />
     </div>
   );
 }

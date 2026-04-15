@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ArrowUpRight, CalendarClock, LocateFixed, MapPin, Maximize2, Minimize2, Radar, Search, Sparkles, Users } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { ResilientImage } from '@/components/ResilientImage';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,17 +20,124 @@ const MapView = dynamic(
   { ssr: false }
 );
 
+const LOCATION_SYNC_DISTANCE_THRESHOLD_METERS = 75;
+const LOCATION_SYNC_THROTTLE_MS = 8_000;
+const EVENT_FETCH_DEBOUNCE_MS = 250;
+const PREFETCH_DELAY_MS = 1_200;
+
+const DISCOVER_SEEDED_EVENTS: EventSummary[] = [
+  {
+    id: 'seed-discover-run',
+    title: 'Sunrise Run + Chai',
+    description: 'An easy-paced neighborhood run that ends with chai and conversation.',
+    bannerUrl: '',
+    badgeIcon: '',
+    latitude: 28.6182,
+    longitude: 77.2115,
+    startTime: '2026-04-20T01:30:00.000Z',
+    endTime: '2026-04-20T03:00:00.000Z',
+    visibility: 'PUBLIC',
+    capacity: 30,
+    organizerId: 'seed',
+    isPaid: false,
+    engagementScore: 92
+  },
+  {
+    id: 'seed-discover-art',
+    title: 'Terrace Painting Jam',
+    description: 'A mellow evening workshop with live demos and open easels.',
+    bannerUrl: '',
+    badgeIcon: '',
+    latitude: 28.6124,
+    longitude: 77.2048,
+    startTime: '2026-04-20T11:30:00.000Z',
+    endTime: '2026-04-20T13:30:00.000Z',
+    visibility: 'PUBLIC',
+    capacity: 18,
+    organizerId: 'seed',
+    isPaid: true,
+    engagementScore: 89
+  },
+  {
+    id: 'seed-discover-code',
+    title: 'Local Coding Circle',
+    description: 'A low-pressure build session for beginners and regulars alike.',
+    bannerUrl: '',
+    badgeIcon: '',
+    latitude: 28.6099,
+    longitude: 77.2261,
+    startTime: '2026-04-21T12:00:00.000Z',
+    endTime: '2026-04-21T14:00:00.000Z',
+    visibility: 'PUBLIC',
+    capacity: 26,
+    organizerId: 'seed',
+    isPaid: false,
+    engagementScore: 87
+  },
+  {
+    id: 'seed-discover-market',
+    title: 'Weekend Makers Market',
+    description: 'Find local creators, food pop-ups, and community-led mini sessions.',
+    bannerUrl: '',
+    badgeIcon: '',
+    latitude: 28.6157,
+    longitude: 77.2191,
+    startTime: '2026-04-19T10:00:00.000Z',
+    endTime: '2026-04-19T14:30:00.000Z',
+    visibility: 'PUBLIC',
+    capacity: 80,
+    organizerId: 'seed',
+    isPaid: false,
+    engagementScore: 95
+  },
+  {
+    id: 'seed-discover-yoga',
+    title: 'Park Yoga + Breathwork',
+    description: 'A guided outdoor morning session focused on mobility and reset.',
+    bannerUrl: '',
+    badgeIcon: '',
+    latitude: 28.6213,
+    longitude: 77.2074,
+    startTime: '2026-04-22T01:00:00.000Z',
+    endTime: '2026-04-22T02:15:00.000Z',
+    visibility: 'PUBLIC',
+    capacity: 35,
+    organizerId: 'seed',
+    isPaid: false,
+    engagementScore: 86
+  }
+];
+
+function distanceMeters([lat1, lng1]: [number, number], [lat2, lng2]: [number, number]) {
+  const R = 6371e3;
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
 export function MapScreen() {
+  const { status } = useSession();
   const [center, setCenter] = useState<[number, number] | null>(null);
   const [radius, setRadius] = useState(5000);
-  const [events, setEvents] = useState<EventSummary[]>([]);
+  const [events, setEvents] = useState<EventSummary[]>(DISCOVER_SEEDED_EVENTS);
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [promptIndex, setPromptIndex] = useState(0);
   const [previewedEventId, setPreviewedEventId] = useState<string | null>(null);
   const [drawerEvent, setDrawerEvent] = useState<EventSummary | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [hasLoadedRealEvents, setHasLoadedRealEvents] = useState(false);
+
+  const eventFetchAbortRef = useRef<AbortController | null>(null);
+  const eventRequestIdRef = useRef(0);
+  const hasLoadedRealEventsRef = useRef(false);
+  const locationSyncSuppressedRef = useRef(false);
+  const lastLocationSyncRef = useRef<{ center: [number, number]; radius: number } | null>(null);
+  const lastLocationSyncAtRef = useRef(0);
+  const prefetchStartedRef = useRef(false);
 
   const centerParams = useMemo(() => {
     if (!center) return '';
@@ -40,16 +149,45 @@ export function MapScreen() {
   const radiusLabel = `${(radius / 1000).toFixed(1)} km`;
 
   const updateLocation = useCallback(async (nextCenter: [number, number]) => {
+    if (status !== 'authenticated' || locationSyncSuppressedRef.current) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastLocationSyncAtRef.current < LOCATION_SYNC_THROTTLE_MS) {
+      return;
+    }
+
+    const previous = lastLocationSyncRef.current;
+    if (previous) {
+      const movedMeters = distanceMeters(previous.center, nextCenter);
+      const radiusChanged = previous.radius !== radius;
+      if (!radiusChanged && movedMeters < LOCATION_SYNC_DISTANCE_THRESHOLD_METERS) {
+        return;
+      }
+    }
+
+    lastLocationSyncAtRef.current = now;
+
     try {
-      await fetch('/api/users/location', {
+      const res = await fetch('/api/users/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latitude: nextCenter[0], longitude: nextCenter[1], radius })
       });
+
+      if (res.status === 401) {
+        locationSyncSuppressedRef.current = true;
+        return;
+      }
+
+      if (res.ok) {
+        lastLocationSyncRef.current = { center: nextCenter, radius };
+      }
     } catch {
       // Location sync is best-effort.
     }
-  }, [radius]);
+  }, [radius, status]);
 
   useEffect(() => {
     const resolveFallback = async () => {
@@ -77,31 +215,114 @@ export function MapScreen() {
     );
   }, []);
 
-  const loadEvents = useCallback(async () => {
-    if (!centerParams) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/events?${centerParams}`);
-      if (!res.ok) {
-        setEvents([]);
-        return;
-      }
-      const data = await res.json();
-      setEvents(data.events ?? []);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!centerParams) {
+      return;
     }
+
+    eventFetchAbortRef.current?.abort();
+    const requestId = ++eventRequestIdRef.current;
+    let controller: AbortController | null = null;
+
+    const timeoutId = window.setTimeout(() => {
+      controller = new AbortController();
+      eventFetchAbortRef.current = controller;
+      setLoading(true);
+
+      void (async () => {
+        try {
+          const res = await fetch(`/api/events?${centerParams}`, { signal: controller.signal, cache: 'no-store' });
+          if (!res.ok) {
+            if (requestId === eventRequestIdRef.current) {
+              setHasLoadedRealEvents(true);
+              hasLoadedRealEventsRef.current = true;
+            }
+            return;
+          }
+          const data = await res.json();
+          if (controller.signal.aborted || requestId !== eventRequestIdRef.current) {
+            return;
+          }
+
+          const nextEvents = Array.isArray(data.events) ? data.events : [];
+          setEvents(nextEvents);
+          setHasLoadedRealEvents(true);
+          hasLoadedRealEventsRef.current = true;
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            return;
+          }
+          if (requestId === eventRequestIdRef.current) {
+            setHasLoadedRealEvents(true);
+            hasLoadedRealEventsRef.current = true;
+          }
+        } finally {
+          if (requestId === eventRequestIdRef.current) {
+            setLoading(false);
+          }
+        }
+      })();
+    }, EVENT_FETCH_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller?.abort();
+    };
   }, [centerParams]);
 
   useEffect(() => {
-    if (!centerParams) return;
-    void loadEvents();
-  }, [centerParams, loadEvents]);
+    return () => {
+      eventFetchAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!center) return;
     void updateLocation(center);
   }, [center, updateLocation]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      locationSyncSuppressedRef.current = false;
+      return;
+    }
+    if (status === 'unauthenticated') {
+      locationSyncSuppressedRef.current = false;
+      lastLocationSyncRef.current = null;
+      lastLocationSyncAtRef.current = 0;
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (!center || prefetchStartedRef.current) {
+      return;
+    }
+
+    prefetchStartedRef.current = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      const prefetchRadii = Array.from(
+        new Set([
+          radius,
+          Math.max(1_000, radius - 1_000),
+          Math.min(20_000, radius + 1_500)
+        ])
+      );
+      void Promise.all(
+        prefetchRadii.map((prefetchRadius) =>
+          fetch(`/api/events?lat=${center[0]}&lng=${center[1]}&radius=${prefetchRadius}`, {
+            signal: controller.signal,
+            cache: 'no-store'
+          }).catch(() => null)
+        )
+      );
+    }, PREFETCH_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [center, radius]);
 
   useEffect(() => {
     if (query) return;
@@ -124,6 +345,7 @@ export function MapScreen() {
 
   async function handleSearch() {
     if (!query || !center) return;
+    eventFetchAbortRef.current?.abort();
     setLoading(true);
     try {
       const res = await fetch('/api/ai-search', {
@@ -132,11 +354,15 @@ export function MapScreen() {
         body: JSON.stringify({ query, latitude: center[0], longitude: center[1], radius })
       });
       if (!res.ok) {
-        setEvents([]);
+        if (hasLoadedRealEventsRef.current) {
+          setEvents([]);
+        }
         return;
       }
       const data = await res.json();
       setEvents(data.events ?? []);
+      setHasLoadedRealEvents(true);
+      hasLoadedRealEventsRef.current = true;
     } finally {
       setLoading(false);
     }
@@ -154,7 +380,9 @@ export function MapScreen() {
 
   const pulseCopy = !center
     ? 'Finding your ilaaka and pinning the map around you.'
-    : loading
+    : loading && !hasLoadedRealEvents
+      ? 'Loading a first set of nearby events so the map feels alive right away.'
+      : loading
       ? 'Refreshing nearby markers and local activity.'
       : featuredEvents.length
         ? `${featuredEvents.length} live events in range, with the strongest moments pulled forward first.`
@@ -330,7 +558,17 @@ export function MapScreen() {
                         <button type="button" className="w-full text-left" onClick={() => openDrawer(previewedEvent)}>
                           <div className="relative h-48 overflow-hidden">
                             {previewedEvent.bannerUrl ? (
-                              <img src={previewedEvent.bannerUrl} alt={previewedEvent.title} className="h-full w-full object-cover" />
+                              <ResilientImage
+                                src={previewedEvent.bannerUrl}
+                                alt={previewedEvent.title}
+                                className="h-full w-full object-cover"
+                                fallback={
+                                  <div
+                                    className="h-full w-full"
+                                    style={{ background: `linear-gradient(135deg, ${getEventTheme(previewedEvent).accentStrong} 0%, ${getEventTheme(previewedEvent).accent} 100%)` }}
+                                  />
+                                }
+                              />
                             ) : (
                               <div className="h-full w-full" style={{ background: `linear-gradient(135deg, ${getEventTheme(previewedEvent).accentStrong} 0%, ${getEventTheme(previewedEvent).accent} 100%)` }} />
                             )}
@@ -459,7 +697,7 @@ export function MapScreen() {
           </div>
 
           {loading ? (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 transition-opacity duration-300 md:grid-cols-2">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div key={index} className="h-[260px] animate-pulse rounded-[2rem] border border-[var(--line)] bg-[rgba(255,255,255,0.34)] dark:bg-[rgba(15,23,42,0.28)]" />
               ))}
@@ -467,7 +705,7 @@ export function MapScreen() {
           ) : null}
 
           {!loading && featuredEvents.length ? (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 transition-opacity duration-300 md:grid-cols-2">
               {featuredEvents.map((event) => {
                 const theme = getEventTheme(event);
                 return (
@@ -475,7 +713,19 @@ export function MapScreen() {
                     <button type="button" className="block w-full text-left" onClick={() => openDrawer(event)}>
                       <div className="relative h-52 overflow-hidden">
                         {event.bannerUrl ? (
-                          <img src={event.bannerUrl} alt={event.title} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                          <ResilientImage
+                            src={event.bannerUrl}
+                            alt={event.title}
+                            className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                            fallback={
+                              <div
+                                className="flex h-full w-full items-center justify-center text-5xl text-white"
+                                style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
+                              >
+                                {event.title.charAt(0)}
+                              </div>
+                            }
+                          />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-5xl text-white" style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}>
                             {event.title.charAt(0)}

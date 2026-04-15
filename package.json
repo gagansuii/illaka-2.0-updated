@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:turbo": "next dev",
+    "dev": "node scripts/dev-guard.mjs",
+    "dev:turbo": "node scripts/dev-guard.mjs",
+    "dev:webpack": "node scripts/dev-guard.mjs --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate deploy",
+    "audit:media": "node scripts/audit-orphaned-media.js"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^2.2.2",
@@ -19,6 +21,7 @@
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-slider": "^1.1.2",
     "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-visually-hidden": "^1.2.4",
     "@types/geojson": "^7946.0.14",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.9.0",

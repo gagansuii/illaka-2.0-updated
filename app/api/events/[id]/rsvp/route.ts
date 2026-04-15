@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { recalcEngagementScore } from '@/lib/engagement';
+import { clearEventsCache } from '@/lib/events-cache';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -47,7 +48,11 @@ export async function POST(_: Request, { params }: RouteContext) {
     console.error('RSVP error:', error);
     return NextResponse.json({ error: 'Failed to RSVP' }, { status: 500 });
   }
-  await recalcEngagementScore(event.id);
+  try {
+    await recalcEngagementScore(event.id);
+  } finally {
+    clearEventsCache();
+  }
 
   return NextResponse.json({ ok: true });
 }

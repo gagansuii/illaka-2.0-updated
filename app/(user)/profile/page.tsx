@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { PaymentButton } from '@/components/PaymentButton';
+import { OrganizerDashboard } from '@/components/OrganizerDashboard';
 
 export default function ProfilePage() {
   const { data } = useSession();
@@ -13,6 +14,7 @@ export default function ProfilePage() {
   const [radius, setRadius] = useState(5000);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const canViewOrganizerDashboard = data?.user?.role === 'ORGANIZER' || data?.user?.role === 'ADMIN';
 
   useEffect(() => {
     if (data?.user?.name) setName(data.user.name);
@@ -39,7 +41,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-4xl space-y-6 px-6 py-10">
       <Card className="space-y-4">
         <h1 className="text-2xl font-semibold">Your profile</h1>
         <div className="space-y-2">
@@ -59,6 +61,12 @@ export default function ProfilePage() {
         />
         <Button variant="ghost" onClick={() => signOut({ callbackUrl: '/login' })}>Sign out</Button>
       </Card>
+
+      {canViewOrganizerDashboard ? (
+        <Card className="space-y-4">
+          <OrganizerDashboard />
+        </Card>
+      ) : null}
     </div>
   );
 }

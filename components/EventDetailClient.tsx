@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { ArrowUpRight, CalendarClock, Compass, Lock, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { PaymentButton } from '@/components/PaymentButton';
+import { ResilientImage } from '@/components/ResilientImage';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatEventClock, formatEventDay, formatEventRange, getEventTheme } from '@/lib/event-style';
@@ -33,6 +34,7 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
   const [rsvpCount, setRsvpCount] = useState(event.rsvps?.length ?? 0);
   const [loading, setLoading] = useState(false);
   const [rsvpError, setRsvpError] = useState('');
+  const [joined, setJoined] = useState(false);
   const hostingThreshold = Number(process.env.NEXT_PUBLIC_HOSTING_FEE_THRESHOLD ?? 50);
   const hostingFee = Number(process.env.NEXT_PUBLIC_HOSTING_FEE_AMOUNT ?? 25000);
   const promotionPrice = Number(process.env.NEXT_PUBLIC_PROMOTION_PRICE ?? 15000);
@@ -51,21 +53,32 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
     .toUpperCase();
 
   async function rsvp() {
+    if (loading || joined) return;
+
     setLoading(true);
     setRsvpError('');
+    setJoined(true);
+    setRsvpCount((current: number) => current + 1);
+
     try {
       const res = await fetch(`/api/events/${event.id}/rsvp`, { method: 'POST' });
       if (res.ok) {
-        setRsvpCount((current: number) => current + 1);
-      } else {
-        let data: any = null;
-        try {
-          data = await res.json();
-        } catch {
-          data = null;
-        }
-        setRsvpError(data?.error ?? 'Could not RSVP. Please try again.');
+        return;
       }
+
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
+      setJoined(false);
+      setRsvpCount((current: number) => Math.max(current - 1, 0));
+      setRsvpError(data?.error ?? 'Could not RSVP. Please try again.');
+    } catch {
+      setJoined(false);
+      setRsvpCount((current: number) => Math.max(current - 1, 0));
+      setRsvpError('Could not RSVP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -74,12 +87,22 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
   return (
     <div className="space-y-8">
       <section className="section-shell overflow-hidden p-0">
-        <div className="relative min-h-[420px] overflow-hidden rounded-[2rem]">
-          {event.bannerUrl ? (
-            <img src={event.bannerUrl} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />
-          ) : (
-            <div
-              className="absolute inset-0"
+          <div className="relative min-h-[420px] overflow-hidden rounded-[2rem]">
+            {event.bannerUrl ? (
+              <ResilientImage
+                src={event.bannerUrl}
+                alt={event.title}
+                className="absolute inset-0 h-full w-full object-cover"
+                fallback={
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
+                  />
+                }
+              />
+            ) : (
+              <div
+                className="absolute inset-0"
               style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
             />
           )}
@@ -226,7 +249,19 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
             <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_0.7fr]">
               <div className="overflow-hidden rounded-[1.8rem] border border-[var(--line)]">
                 {event.bannerUrl ? (
-                  <img src={event.bannerUrl} alt={event.title} className="h-full min-h-[240px] w-full object-cover transition-transform duration-500 hover:scale-[1.03]" />
+                  <ResilientImage
+                    src={event.bannerUrl}
+                    alt={event.title}
+                    className="h-full min-h-[240px] w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
+                    fallback={
+                      <div
+                        className="flex min-h-[240px] items-center justify-center text-5xl font-semibold text-white"
+                        style={{ background: `linear-gradient(135deg, ${theme.accentStrong} 0%, ${theme.accent} 100%)` }}
+                      >
+                        {event.title.charAt(0)}
+                      </div>
+                    }
+                  />
                 ) : (
                   <div
                     className="flex min-h-[240px] items-center justify-center text-5xl font-semibold text-white"
@@ -244,7 +279,16 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
                   </div>
                   <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.35rem] border border-white/30 bg-white/70">
                     {event.badgeIcon ? (
-                      <img src={event.badgeIcon} alt="" className="h-full w-full object-cover" />
+                      <ResilientImage
+                        src={event.badgeIcon}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        fallback={
+                          <span className="text-sm font-semibold" style={{ color: theme.accentStrong }}>
+                            {theme.shortLabel}
+                          </span>
+                        }
+                      />
                     ) : (
                       <span className="text-sm font-semibold" style={{ color: theme.accentStrong }}>
                         {theme.shortLabel}
@@ -296,8 +340,8 @@ export function EventDetailClient({ event }: { event: EventDetail }) {
             </div>
 
             <div className="space-y-3">
-              <Button onClick={rsvp} disabled={loading} size="lg" className="w-full">
-                {loading ? 'Reserving...' : 'RSVP now'}
+              <Button onClick={rsvp} disabled={loading || joined} size="lg" className="w-full">
+                {loading ? 'Reserving...' : joined ? 'Joined' : 'RSVP now'}
               </Button>
               {rsvpError ? <p className="text-sm text-red-500">{rsvpError}</p> : null}
               <Button asChild variant="outline" size="lg" className="w-full">

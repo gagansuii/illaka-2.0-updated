@@ -6,6 +6,17 @@ import { rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 import { getOpenAIClient, getPineconeIndex, isOpenAIConfigured, isPineconeConfigured } from '@/lib/ai';
 import { randomUUID } from 'crypto';
+import { sanitizeEventMediaList } from '@/lib/media';
+import {
+  clearEventsCache,
+  clearInFlightEventsRefresh,
+  getCachedEvents,
+  getInFlightEventsRefresh,
+  makeEventsCacheKey,
+  normalizeCoord,
+  setCachedEvents,
+  setInFlightEventsRefresh,
+} from '@/lib/events-cache';
 
 const createSchema = z.object({
   title: z.string().min(3).max(200),
@@ -24,13 +35,88 @@ const createSchema = z.object({
   path: ['endTime']
 });
 
+const EVENT_CACHE_FRESH_MS = 15_000;
+const EVENT_CACHE_STALE_MS = 60_000;
+
+type EventRow = {
+  id: string;
+  title: string;
+  description: string;
+  bannerUrl: string;
+  badgeIcon: string;
+  latitude: number;
+  longitude: number;
+  startTime: string;
+  endTime: string;
+  visibility: 'PUBLIC' | 'PRIVATE';
+  capacity: number;
+  organizerId: string;
+  isPaid: boolean;
+  engagementScore: number;
+};
+
+type CacheEntry = {
+  events: EventRow[];
+  fetchedAt: number;
+};
+
+async function fetchEventsFromDb(lat: number, lng: number, radius: number) {
+  const events = await prisma.$queryRaw<EventRow[]>`
+    SELECT
+      "id",
+      "title",
+      "description",
+      "bannerUrl",
+      "badgeIcon",
+      "latitude",
+      "longitude",
+      "startTime",
+      "endTime",
+      "visibility",
+      "capacity",
+      "organizerId",
+      "isPaid",
+      "engagementScore"
+    FROM "Event"
+    WHERE "visibility" = 'PUBLIC'
+      AND ST_DWithin(
+        location,
+        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+        ${radius}
+      )
+    ORDER BY "engagementScore" DESC
+    LIMIT 200
+  `;
+  return sanitizeEventMediaList(events);
+}
+
+function refreshEvents(cacheKey: string, lat: number, lng: number, radius: number) {
+  const existing = getInFlightEventsRefresh(cacheKey) as Promise<EventRow[]> | undefined;
+  if (existing) {
+    return existing;
+  }
+
+  const refreshPromise = fetchEventsFromDb(lat, lng, radius)
+    .then((events) => {
+      setCachedEvents(cacheKey, events);
+      return events;
+    })
+    .finally(() => {
+      clearInFlightEventsRefresh(cacheKey);
+    });
+
+  setInFlightEventsRefresh(cacheKey, refreshPromise);
+  return refreshPromise;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const lat = Number(searchParams.get('lat'));
   const lng = Number(searchParams.get('lng'));
-  const radius = Number(searchParams.get('radius') ?? 5000);
+  const rawRadius = Number(searchParams.get('radius') ?? 5000);
+  const radius = Number.isFinite(rawRadius) && rawRadius > 0 ? rawRadius : 5000;
 
-  if (!(await rateLimit(`events:${lat}:${lng}`))) {
+  if (!(await rateLimit(`events:${normalizeCoord(lat)}:${normalizeCoord(lng)}`))) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
@@ -38,40 +124,33 @@ export async function GET(req: Request) {
     return NextResponse.json({ events: [] });
   }
 
-  let events: any[];
+  const cacheKey = makeEventsCacheKey(lat, lng, radius);
+  const now = Date.now();
+  const cached = getCachedEvents(cacheKey) as CacheEntry | undefined;
+
+  if (cached) {
+    const age = now - cached.fetchedAt;
+    if (age <= EVENT_CACHE_FRESH_MS) {
+      return NextResponse.json({ events: cached.events });
+    }
+    if (age <= EVENT_CACHE_FRESH_MS + EVENT_CACHE_STALE_MS) {
+      void refreshEvents(cacheKey, lat, lng, radius).catch((err) => {
+        console.error('Background events refresh failed:', err);
+      });
+      return NextResponse.json({ events: cached.events });
+    }
+  }
+
   try {
-    events = await prisma.$queryRaw<any[]>`
-      SELECT
-        "id",
-        "title",
-        "description",
-        "bannerUrl",
-        "badgeIcon",
-        "latitude",
-        "longitude",
-        "startTime",
-        "endTime",
-        "visibility",
-        "capacity",
-        "organizerId",
-        "isPaid",
-        "engagementScore"
-      FROM "Event"
-      WHERE "visibility" = 'PUBLIC'
-        AND ST_DWithin(
-          location,
-          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-          ${radius}
-        )
-      ORDER BY "engagementScore" DESC
-      LIMIT 200
-    `;
+    const events = await refreshEvents(cacheKey, lat, lng, radius);
+    return NextResponse.json({ events });
   } catch (err) {
+    if (cached) {
+      return NextResponse.json({ events: cached.events });
+    }
     console.error('Events query failed:', err);
     return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
-
-  return NextResponse.json({ events });
 }
 
 export async function POST(req: Request) {
@@ -169,5 +248,6 @@ export async function POST(req: Request) {
     console.error('Pinecone indexing failed for event', event.id, err);
   }
 
+  clearEventsCache();
   return NextResponse.json({ event });
 }

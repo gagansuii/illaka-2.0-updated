@@ -82,13 +82,21 @@ export function MapView({
 
   const mapCenter = center ?? defaultCenter;
 
-  const markerIcons = useMemo(() => {
+  const defaultMarkerIcons = useMemo(() => {
     const iconMap = new Map<string, L.DivIcon>();
     for (const event of events) {
-      iconMap.set(event.id, makeMarkerIcon(event, event.id === previewedEventId));
+      iconMap.set(event.id, makeMarkerIcon(event, false));
     }
     return iconMap;
-  }, [events, previewedEventId]);
+  }, [events]);
+
+  const activeMarkerIcons = useMemo(() => {
+    const iconMap = new Map<string, L.DivIcon>();
+    for (const event of events) {
+      iconMap.set(event.id, makeMarkerIcon(event, true));
+    }
+    return iconMap;
+  }, [events]);
 
   return (
     <MapContainer
@@ -114,7 +122,7 @@ export function MapView({
         <Marker
           key={event.id}
           position={[event.latitude, event.longitude]}
-          icon={markerIcons.get(event.id)}
+          icon={event.id === previewedEventId ? activeMarkerIcons.get(event.id) : defaultMarkerIcons.get(event.id)}
           eventHandlers={{
             mouseover: () => onPreviewEvent?.(event),
             click: () => {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import type { EventSummary } from '@/lib/types';
 import { Card } from '@/components/ui/card';
+import { ResilientImage } from '@/components/ResilientImage';
 import { CalendarClock, Sparkles, Users } from 'lucide-react';
 import { formatEventDay, formatEventRange } from '@/lib/event-style';
 
@@ -42,7 +43,12 @@ function SwipeCard({
     >
       <Card className="relative h-[19rem] cursor-grab overflow-hidden rounded-[1.9rem] p-0">
         {event.bannerUrl ? (
-          <img src={event.bannerUrl} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />
+          <ResilientImage
+            src={event.bannerUrl}
+            alt={event.title}
+            className="absolute inset-0 h-full w-full object-cover"
+            fallback={<div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,118,110,0.92)_0%,rgba(200,102,63,0.9)_100%)]" />}
+          />
         ) : (
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,118,110,0.92)_0%,rgba(200,102,63,0.9)_100%)]" />
         )}

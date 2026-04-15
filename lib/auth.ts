@@ -14,8 +14,12 @@ try {
   authSecret = process.env.NODE_ENV === 'production' ? undefined : 'dev-secret';
 }
 
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+
 export const authOptions: NextAuthOptions = {
-  session: { strategy: 'jwt' },
+  // Persist login across refresh/revisit using NextAuth JWT httpOnly cookies.
+  session: { strategy: 'jwt', maxAge: SESSION_MAX_AGE_SECONDS },
+  jwt: { maxAge: SESSION_MAX_AGE_SECONDS },
   providers: [
     CredentialsProvider({
       name: 'credentials',

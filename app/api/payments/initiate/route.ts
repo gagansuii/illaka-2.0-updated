@@ -41,7 +41,12 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
 
-  if ((parsed.data.reason === 'hosting_fee' || parsed.data.reason === 'promotion') && parsed.data.eventId) {
+  const isEventPayment = parsed.data.reason === 'hosting_fee' || parsed.data.reason === 'promotion';
+  if (isEventPayment && !parsed.data.eventId) {
+    return NextResponse.json({ error: 'Event is required for this payment type' }, { status: 400 });
+  }
+
+  if (isEventPayment && parsed.data.eventId) {
     let event;
     try {
       event = await prisma.event.findUnique({ where: { id: parsed.data.eventId } });
@@ -53,6 +58,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
   }
+
+  // Keep event-linked payments tied to the event; subscription stays user-level.
+  const paymentEventId = isEventPayment ? parsed.data.eventId ?? null : null;
 
   const amount = getPaymentAmount(parsed.data.reason);
   const razorpay = getRazorpayClient();
@@ -72,7 +80,7 @@ export async function POST(req: Request) {
     await prisma.payment.create({
       data: {
         userId: session.user.id,
-        eventId: parsed.data.eventId,
+        eventId: paymentEventId,
         provider: 'razorpay',
         providerRef: order.id,
         amount,
