@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { sanitizeEventMediaList } from '@/lib/media';
 
 const schema = z.object({
   query: z.string().min(2),
@@ -93,5 +94,5 @@ export async function POST(req: Request) {
     return scoreB - scoreA;
   });
 
-  return NextResponse.json({ events: ranked });
+  return NextResponse.json({ events: sanitizeEventMediaList(ranked) });
 }

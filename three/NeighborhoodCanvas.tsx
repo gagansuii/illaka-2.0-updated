@@ -161,8 +161,17 @@ export function NeighborhoodCanvas({ progressRef }: { progressRef: MutableRefObj
 
     const clock = new THREE.Clock();
     let frameId = 0;
+    let timeoutId = 0;
+    let tabVisible = typeof document === 'undefined' ? true : document.visibilityState === 'visible';
 
     const animate = () => {
+      if (!tabVisible) {
+        timeoutId = window.setTimeout(() => {
+          frameId = window.requestAnimationFrame(animate);
+        }, 400);
+        return;
+      }
+
       const delta = Math.min(clock.getDelta(), 0.05);
       const elapsed = clock.elapsedTime;
       const progress = progressRef.current;
@@ -190,12 +199,21 @@ export function NeighborhoodCanvas({ progressRef }: { progressRef: MutableRefObj
     };
 
     const handleResize = () => resize();
+    const handleVisibility = () => {
+      tabVisible = document.visibilityState === 'visible';
+      if (tabVisible) {
+        clock.getDelta();
+      }
+    };
     window.addEventListener('resize', handleResize);
+    document.addEventListener('visibilitychange', handleVisibility);
     animate();
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibility);
 
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
