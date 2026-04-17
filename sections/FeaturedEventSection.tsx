@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowRight } from 'lucide-react';
 
 const FEATURED = {
   series:    'Heritage Series · Volume IV',
@@ -103,16 +104,23 @@ export function FeaturedEventSection() {
               </div>
             </motion.div>
 
-            {/* CTA */}
+            {/* CTA → Feed */}
             <motion.div {...fadeUp(0.14)}>
-              <motion.button
+              <motion.div
                 whileHover={{ scale: 1.025, y: -3 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 440, damping: 20 }}
-                className="heritage-btn heritage-btn--primary w-full justify-center"
               >
-                Get Tickets
-              </motion.button>
+                <Link
+                  href="/discover"
+                  className="heritage-btn heritage-btn--primary w-full justify-center"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    Explore Feed
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              </motion.div>
             </motion.div>
           </div>
 

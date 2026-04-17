@@ -1,11 +1,13 @@
 import { HeroSection } from '@/sections/HeroSection';
 import { FeaturedEventSection } from '@/sections/FeaturedEventSection';
+import { InteractiveMapSection } from '@/sections/InteractiveMapSection';
 
 export function LandingExperience() {
   return (
     <main className="relative bg-background">
       <HeroSection />
       <FeaturedEventSection />
+      <InteractiveMapSection />
 
       {/* Heritage footer */}
       <footer className="w-full pt-20 pb-12 border-t border-on-surface/10 bg-background">
