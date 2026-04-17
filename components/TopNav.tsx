@@ -35,7 +35,7 @@ export function TopNav() {
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
           <span
             className={`font-[family:var(--font-fraunces)] text-2xl leading-none tracking-tight transition-all duration-300 ${
-              isHome ? 'nav-logo-gradient' : 'text-[var(--text)]'
+              isHome ? 'nav-logo-warm' : 'text-[var(--text)]'
             }`}
           >
             Illaka
@@ -43,7 +43,7 @@ export function TopNav() {
           <motion.span
             animate={{ scale: [1, 1.3, 1], opacity: [0.9, 1, 0.9] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            className={`h-1.5 w-1.5 rounded-full mt-1 ${isHome ? 'bg-cyan-400' : 'bg-[var(--accent)]'}`}
+            className={`h-1.5 w-1.5 rounded-full mt-1 bg-[var(--accent)]`}
           />
         </Link>
 
