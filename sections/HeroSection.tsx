@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Compass, MapPin, Sparkles } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useHeroScroll } from '@/animations/useHeroScroll';
 
@@ -20,77 +20,55 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[100svh] overflow-hidden px-4 pt-28 [--hero-progress:0] sm:px-6 lg:px-8"
+      className="relative min-h-[100svh] overflow-hidden px-4 pt-20 [--hero-progress:0] sm:px-6 lg:px-8"
     >
-      <div className="absolute inset-0 opacity-70">
+      {/* 3D background canvas */}
+      <div className="absolute inset-0 opacity-60">
         <NeighborhoodCanvas progressRef={progressRef} />
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(245,237,226,0.26)_0%,rgba(245,237,226,0.02)_32%,rgba(245,237,226,0.72)_100%)] dark:bg-[linear-gradient(180deg,rgba(9,13,19,0.18)_0%,rgba(9,13,19,0.04)_35%,rgba(9,13,19,0.82)_100%)]" />
+      {/* Gradient overlay */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(245,237,226,0.2)_0%,rgba(245,237,226,0.0)_40%,rgba(245,237,226,0.85)_100%)] dark:bg-[linear-gradient(180deg,rgba(14,20,27,0.2)_0%,rgba(14,20,27,0.0)_40%,rgba(14,20,27,0.88)_100%)]" />
 
-      <div className="relative mx-auto grid min-h-[calc(100svh-7rem)] max-w-[1440px] items-end gap-10 pb-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="max-w-3xl space-y-6">
-          <p className="eyebrow w-fit border border-white/40 bg-[rgba(255,255,255,0.55)] shadow-[0_18px_40px_rgba(17,24,39,0.1)] dark:border-white/10 dark:bg-[rgba(15,23,42,0.36)]">
-            <Compass className="h-3.5 w-3.5" />
-            Cinematic neighborhood discovery
+      <div className="relative mx-auto flex min-h-[calc(100svh-5rem)] max-w-5xl flex-col justify-end pb-16 gap-6">
+        <div ref={headlineRef} className="max-w-2xl space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent)]">
+            Your neighbourhood
           </p>
-
-          <div ref={headlineRef} className="space-y-4">
-            <h1 className="max-w-4xl font-[family:var(--font-fraunces)] text-5xl leading-[0.9] sm:text-6xl lg:text-[6.2rem]">
-              Your neighbourhood is more alive than you think.
-            </h1>
-          </div>
-
-          <div ref={bodyRef} className="space-y-4">
-            <p className="max-w-2xl text-base leading-8 text-muted sm:text-lg">
-              Discover the people, skills, and stories around you through a map-first platform built for local curiosity.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="info-pill">
-                <MapPin className="h-4 w-4 text-[var(--accent)]" />
-                Run clubs
-              </span>
-              <span className="info-pill">
-                <MapPin className="h-4 w-4 text-[var(--secondary)]" />
-                Art workshops
-              </span>
-              <span className="info-pill">
-                <MapPin className="h-4 w-4 text-[var(--accent)]" />
-                Skillshare sessions
-              </span>
-            </div>
-          </div>
-
-          <div ref={ctaRef} className="flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/discover">Explore your Ilaaka</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/events/new">Start an Activity</Link>
-            </Button>
-          </div>
+          <h1 className="font-[family:var(--font-fraunces)] text-5xl leading-[1.0] sm:text-6xl lg:text-[5.5rem]">
+            More alive than<br />you think.
+          </h1>
         </div>
 
-        <div className="grid gap-4 lg:pb-6">
-          <div className="rounded-[1.8rem] border border-white/45 bg-[rgba(255,255,255,0.62)] p-5 shadow-[0_24px_60px_rgba(17,24,39,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[rgba(15,23,42,0.34)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--secondary)]">Live signal</p>
-            <p className="mt-3 text-2xl font-semibold">Nodes are waking up across the city.</p>
-            <p className="mt-2 text-sm leading-6 text-muted">Scroll to reveal how Ilaaka turns familiar streets into invitations.</p>
-          </div>
-          <div className="rounded-[1.8rem] border border-white/45 bg-[rgba(255,255,255,0.56)] p-5 shadow-[0_24px_60px_rgba(17,24,39,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[rgba(15,23,42,0.3)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">Movement</p>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(200,102,63,0.16)]">
-                <Sparkles className="h-5 w-5 text-[var(--accent)]" />
-              </div>
-              <p className="text-sm leading-6 text-muted">
-                Ilaaka is not just an app. It is a movement to rediscover local life.
-              </p>
-            </div>
-          </div>
+        <div ref={bodyRef} className="max-w-lg">
+          <p className="text-base leading-7 text-[var(--muted)] sm:text-lg">
+            Discover local events, join the community, and find what&apos;s happening in your ilaaka — right now.
+          </p>
+        </div>
+
+        <div ref={ctaRef} className="flex flex-wrap items-center gap-3">
+          <Button asChild size="lg" className="rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white border-0 px-6">
+            <Link href="/discover">Explore events</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="rounded-xl border-[var(--line)] px-6">
+            <Link href="/events/new">Host something</Link>
+          </Button>
+        </div>
+
+        {/* Quick info pills */}
+        <div className="flex flex-wrap gap-2">
+          {['Run clubs', 'Art workshops', 'Skill swaps', 'Street food', 'Open mics'].map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-1 text-xs text-[var(--muted)] backdrop-blur-sm"
+            >
+              <MapPin className="h-3 w-3 text-[var(--accent)]" />
+              {tag}
+            </span>
+          ))}
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/40 bg-[rgba(255,255,255,0.56)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--muted)] backdrop-blur-xl dark:border-white/10 dark:bg-[rgba(15,23,42,0.32)]">
+      <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--muted)] backdrop-blur-xl">
         Scroll to explore
       </div>
     </section>
