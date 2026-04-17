@@ -25,88 +25,6 @@ const LOCATION_SYNC_THROTTLE_MS = 8_000;
 const EVENT_FETCH_DEBOUNCE_MS = 250;
 const PREFETCH_DELAY_MS = 1_200;
 
-const DISCOVER_SEEDED_EVENTS: EventSummary[] = [
-  {
-    id: 'seed-discover-run',
-    title: 'Sunrise Run + Chai',
-    description: 'An easy-paced neighborhood run that ends with chai and conversation.',
-    bannerUrl: '',
-    badgeIcon: '',
-    latitude: 28.6182,
-    longitude: 77.2115,
-    startTime: '2026-04-20T01:30:00.000Z',
-    endTime: '2026-04-20T03:00:00.000Z',
-    visibility: 'PUBLIC',
-    capacity: 30,
-    organizerId: 'seed',
-    isPaid: false,
-    engagementScore: 92
-  },
-  {
-    id: 'seed-discover-art',
-    title: 'Terrace Painting Jam',
-    description: 'A mellow evening workshop with live demos and open easels.',
-    bannerUrl: '',
-    badgeIcon: '',
-    latitude: 28.6124,
-    longitude: 77.2048,
-    startTime: '2026-04-20T11:30:00.000Z',
-    endTime: '2026-04-20T13:30:00.000Z',
-    visibility: 'PUBLIC',
-    capacity: 18,
-    organizerId: 'seed',
-    isPaid: true,
-    engagementScore: 89
-  },
-  {
-    id: 'seed-discover-code',
-    title: 'Local Coding Circle',
-    description: 'A low-pressure build session for beginners and regulars alike.',
-    bannerUrl: '',
-    badgeIcon: '',
-    latitude: 28.6099,
-    longitude: 77.2261,
-    startTime: '2026-04-21T12:00:00.000Z',
-    endTime: '2026-04-21T14:00:00.000Z',
-    visibility: 'PUBLIC',
-    capacity: 26,
-    organizerId: 'seed',
-    isPaid: false,
-    engagementScore: 87
-  },
-  {
-    id: 'seed-discover-market',
-    title: 'Weekend Makers Market',
-    description: 'Find local creators, food pop-ups, and community-led mini sessions.',
-    bannerUrl: '',
-    badgeIcon: '',
-    latitude: 28.6157,
-    longitude: 77.2191,
-    startTime: '2026-04-19T10:00:00.000Z',
-    endTime: '2026-04-19T14:30:00.000Z',
-    visibility: 'PUBLIC',
-    capacity: 80,
-    organizerId: 'seed',
-    isPaid: false,
-    engagementScore: 95
-  },
-  {
-    id: 'seed-discover-yoga',
-    title: 'Park Yoga + Breathwork',
-    description: 'A guided outdoor morning session focused on mobility and reset.',
-    bannerUrl: '',
-    badgeIcon: '',
-    latitude: 28.6213,
-    longitude: 77.2074,
-    startTime: '2026-04-22T01:00:00.000Z',
-    endTime: '2026-04-22T02:15:00.000Z',
-    visibility: 'PUBLIC',
-    capacity: 35,
-    organizerId: 'seed',
-    isPaid: false,
-    engagementScore: 86
-  }
-];
 
 function distanceMeters([lat1, lng1]: [number, number], [lat2, lng2]: [number, number]) {
   const R = 6371e3;
@@ -121,7 +39,7 @@ export function MapScreen() {
   const { status } = useSession();
   const [center, setCenter] = useState<[number, number] | null>(null);
   const [radius, setRadius] = useState(5000);
-  const [events, setEvents] = useState<EventSummary[]>(DISCOVER_SEEDED_EVENTS);
+  const [events, setEvents] = useState<EventSummary[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
