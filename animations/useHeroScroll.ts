@@ -21,55 +21,47 @@ export function useHeroScroll() {
     if (!section) return;
 
     const context = gsap.context(() => {
-      // Start content hidden slightly below
+      // Content starts invisible, slightly below
       gsap.set([headlineRef.current, bodyRef.current, ctaRef.current, tagsRef.current], {
         opacity: 0,
-        y: 40,
+        y: 28,
       });
 
-      // Background image: start zoomed in a little, translate up as scroll progresses
-      gsap.set(bgRef.current, { scale: 1.08, y: 0 });
+      // Image starts very subtly zoomed so there's room to breathe
+      gsap.set(bgRef.current, { scale: 1.05, y: 0 });
 
-      const tl = gsap.timeline({
+      // Stagger the content in immediately on page load (no scroll needed for first reveal)
+      const introTl = gsap.timeline({ delay: 0.3 });
+      introTl
+        .to(headlineRef.current, { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out' }, 0)
+        .to(bodyRef.current,    { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 0.18)
+        .to(ctaRef.current,     { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 0.32)
+        .to(tagsRef.current,    { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0.44);
+
+      // Scroll-driven parallax: pin the hero and drift the image
+      gsap.timeline({
         scrollTrigger: {
           trigger: section,
           start: 'top top',
-          end: '+=150%',
-          scrub: 1.2,
+          end: '+=120%',
+          scrub: 2,            // higher = smoother/lazier follow
           pin: true,
           onUpdate: (self) => {
             progressRef.current = self.progress;
             section.style.setProperty('--hero-progress', `${self.progress}`);
           },
         },
-      });
-
-      // Parallax: image slowly drifts up and de-zooms while scrolling
-      tl.to(
-        bgRef.current,
-        { scale: 1.0, y: '-8%', ease: 'none', duration: 1 },
-        0
-      );
-
-      // Overlay darkens slightly as you scroll deeper
-      tl.to(
-        overlayRef.current,
-        { opacity: 0.72, ease: 'none', duration: 0.7 },
-        0
-      );
-
-      // Content fades in at the start of scroll
-      tl.to(headlineRef.current, { opacity: 1, y: 0, ease: 'power3.out', duration: 0.25 }, 0.04);
-      tl.to(bodyRef.current, { opacity: 1, y: 0, ease: 'power3.out', duration: 0.22 }, 0.1);
-      tl.to(ctaRef.current, { opacity: 1, y: 0, ease: 'power3.out', duration: 0.2 }, 0.16);
-      tl.to(tagsRef.current, { opacity: 1, y: 0, ease: 'power3.out', duration: 0.18 }, 0.22);
-
-      // Content slides up and fades out near the end of the pin
-      tl.to(
-        [headlineRef.current, bodyRef.current, ctaRef.current, tagsRef.current],
-        { opacity: 0, y: -36, ease: 'power2.in', duration: 0.22, stagger: 0.04 },
-        0.7
-      );
+      })
+        // Gentle upward drift + slight de-zoom on the image
+        .to(bgRef.current, { scale: 1.0, y: '-6%', ease: 'none', duration: 1 }, 0)
+        // Overlay barely changes — stays light so the image remains visible
+        .to(overlayRef.current, { opacity: 0.55, ease: 'none', duration: 1 }, 0)
+        // Content drifts up very slowly with the scroll (parallax depth)
+        .to(
+          [headlineRef.current, bodyRef.current, ctaRef.current, tagsRef.current],
+          { y: -20, ease: 'none', duration: 1 },
+          0
+        );
     }, section);
 
     return () => context.revert();
