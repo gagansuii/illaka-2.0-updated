@@ -1,16 +1,35 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 import { randomUUID } from 'crypto';
 
 const ALLOWED_FOLDERS = new Set(['ilaka/banners', 'ilaka/badges']);
 
+function isCloudinaryConfigured() {
+  return !!(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  );
+}
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!isCloudinaryConfigured()) {
+    return NextResponse.json(
+      { error: 'Image uploads are not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your environment variables.' },
+      { status: 503 }
+    );
+  }
+
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
 
   let formData: FormData;
   try {
@@ -29,20 +48,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid folder' }, { status: 400 });
   }
 
-  const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
-  const filename = `${randomUUID()}.${ext}`;
-  const uploadDir = join(process.cwd(), 'public', 'uploads', folder);
+  const buffer = Buffer.from(await file.arrayBuffer());
 
   try {
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(join(uploadDir, filename), buffer);
+    const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder,
+          public_id: randomUUID(),
+          resource_type: 'image',
+          overwrite: false,
+        },
+        (error, res) => {
+          if (error || !res) reject(error ?? new Error('Upload failed'));
+          else resolve(res as { secure_url: string });
+        }
+      ).end(buffer);
+    });
+
+    return NextResponse.json({ url: result.secure_url });
   } catch (err) {
-    console.error('File write failed:', err);
+    console.error('Cloudinary upload failed:', err);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
-
-  return NextResponse.json({ url: `/uploads/${folder}/${filename}` });
 }
