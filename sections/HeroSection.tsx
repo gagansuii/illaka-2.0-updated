@@ -3,10 +3,16 @@
 import Link from 'next/link';
 import { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { MapPin } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sparkles, ArrowRight } from 'lucide-react';
+import { SmokeLayer } from '@/components/SmokeLayer';
 
-const TAGS = ['Run clubs', 'Art workshops', 'Skill swaps', 'Street food', 'Open mics'] as const;
+const TAGS = [
+  { label: 'Run clubs', color: 'rgba(124,58,237,0.25)', border: 'rgba(124,58,237,0.4)', icon: '⚡' },
+  { label: 'Art workshops', color: 'rgba(6,182,212,0.2)', border: 'rgba(6,182,212,0.4)', icon: '🎨' },
+  { label: 'Skill swaps', color: 'rgba(249,115,22,0.2)', border: 'rgba(249,115,22,0.4)', icon: '🔄' },
+  { label: 'Street food', color: 'rgba(236,72,153,0.2)', border: 'rgba(236,72,153,0.4)', icon: '🍜' },
+  { label: 'Open mics', color: 'rgba(16,185,129,0.2)', border: 'rgba(16,185,129,0.4)', icon: '🎤' },
+] as const;
 
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -16,148 +22,171 @@ export function HeroSection() {
     offset: ['start start', 'end start'],
   });
 
-  // Smooth spring on top of the raw scroll value
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 60, damping: 25, restDelta: 0.001 });
-
-  // Image drifts up as you scroll (parallax) — stays fully visible, just moves
-  const imageY = useTransform(smoothProgress, [0, 1], ['0%', '22%']);
-
-  // Overlay fades in slightly to keep text readable deeper in scroll
-  const overlayOpacity = useTransform(smoothProgress, [0, 0.6], [0.25, 0.65]);
-
-  // Content fades out and lifts as you scroll away
-  const contentY   = useTransform(smoothProgress, [0, 0.5], ['0%', '-18%']);
-  const contentOp  = useTransform(smoothProgress, [0, 0.45], [1, 0]);
+  const contentY    = useTransform(smoothProgress, [0, 0.5], ['0%', '-18%']);
+  const contentOp   = useTransform(smoothProgress, [0, 0.45], [1, 0]);
+  const scrollHintOp = useTransform(smoothProgress, [0, 0.15], [1, 0]);
 
   return (
     <div
       ref={containerRef}
       className="relative h-[100svh] w-full overflow-hidden"
+      style={{ background: '#030308' }}
     >
-      {/* ── Full-bleed background image ── */}
-      <motion.div
-        style={{ y: imageY }}
-        className="absolute inset-0 h-[115%] w-full will-change-transform"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/hero-bg.jpeg"
-          alt=""
-          className="h-full w-full object-cover object-[center_18%]"
-          draggable={false}
-          fetchPriority="high"
-        />
-      </motion.div>
+      {/* ── Animated gradient orb layer ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="hero-orb hero-orb--violet" />
+        <div className="hero-orb hero-orb--cyan" />
+        <div className="hero-orb hero-orb--orange" />
+        <div className="hero-orb hero-orb--pink" />
+        <div className="hero-orb hero-orb--green" />
+      </div>
 
-      {/* ── Static bottom vignette — always on, keeps text readable ── */}
+      {/* ── Subtle mesh grid overlay ── */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px)',
+          backgroundSize: '72px 72px',
+          zIndex: 1,
+        }}
+      />
+
+      {/* ── Cinematic grain texture ── */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.045'/%3E%3C/svg%3E")`,
+          backgroundSize: '128px 128px',
+          mixBlendMode: 'overlay',
+          zIndex: 2,
+        }}
+      />
+
+      {/* ── Bottom vignette gradient into next section ── */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'linear-gradient(to bottom, transparent 0%, transparent 32%, rgba(5,2,1,0.52) 65%, rgba(5,2,1,0.88) 100%)',
+            'linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(3,3,8,0.55) 70%, rgba(3,3,8,0.97) 100%)',
+          zIndex: 3,
         }}
       />
 
-      {/* ── Animated overlay — barely visible at start, deepens on scroll ── */}
+      {/* ── Hero content ── */}
       <motion.div
-        style={{
-          opacity: overlayOpacity,
-          background: 'rgba(5,2,1,0.18)',
-        }}
-        className="pointer-events-none absolute inset-0"
-      />
-
-      {/* ── Text content ── */}
-      <motion.div
-        style={{ y: contentY, opacity: contentOp }}
-        className="absolute inset-x-0 bottom-0 px-4 pb-14 sm:px-6 lg:px-8"
+        style={{ y: contentY, opacity: contentOp, zIndex: 10, position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: '4rem', paddingLeft: '1.25rem', paddingRight: '1.25rem' }}
+        className="sm:!px-8 lg:!px-12"
       >
-        <div className="mx-auto max-w-5xl">
+        <div className="relative mx-auto max-w-6xl">
 
-          {/* Headline — staggered entry on mount */}
+          {/* Eyebrow */}
           <motion.div
-            initial={{ opacity: 0, y: 32 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-            className="mb-4 space-y-2"
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            className="mb-5"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[var(--accent)]">
+            <span className="hero-eyebrow">
+              <Sparkles className="inline h-3 w-3 mr-1.5" />
               Your neighbourhood
-            </p>
-            <h1 className="font-[family:var(--font-fraunces)] text-5xl leading-[1.0] text-white sm:text-6xl lg:text-[5.2rem]">
-              More alive than<br className="hidden sm:block" /> you think.
+            </span>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.18 }}
+            className="mb-6 space-y-0"
+          >
+            <h1
+              className="font-[family:var(--font-fraunces)] leading-[0.92] tracking-tight"
+              style={{ fontSize: 'clamp(3.2rem, 9vw, 8.5rem)' }}
+            >
+              <span className="hero-gradient-text block">More alive</span>
+              <span className="text-white/95 block">than you think.</span>
             </h1>
           </motion.div>
 
+          {/* Description */}
           <motion.p
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-            className="mb-5 max-w-md text-[15px] leading-7 text-white/75"
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.34 }}
+            className="mb-7 max-w-md text-[15px] leading-7 text-white/60"
           >
             Discover local events, meet your community, and find what&apos;s happening around you — right now.
           </motion.p>
 
+          {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.44 }}
-            className="mb-5 flex flex-wrap gap-3"
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.46 }}
+            className="mb-7 flex flex-wrap gap-3"
           >
-            <Button
-              asChild
-              size="lg"
-              className="rounded-xl border-0 bg-[var(--accent)] px-7 text-white shadow-[0_4px_22px_rgba(200,102,63,0.55)] hover:bg-[var(--accent-strong)] transition-all"
-            >
-              <Link href="/discover">Explore events</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="rounded-xl border-white/28 bg-white/10 px-7 text-white backdrop-blur-sm hover:bg-white/20 transition-all"
-            >
-              <Link href="/events/new">Host something</Link>
-            </Button>
+            <Link href="/discover" className="hero-btn-primary group">
+              Explore events
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+            </Link>
+            <Link href="/events/new" className="hero-btn-ghost">
+              Host something
+            </Link>
           </motion.div>
 
+          {/* Tags */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0.9, delay: 0.62 }}
             className="flex flex-wrap gap-2"
           >
-            {TAGS.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-3 py-1 text-xs text-white/72 backdrop-blur-sm"
+            {TAGS.map((tag, i) => (
+              <motion.span
+                key={tag.label}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.65 + i * 0.07 }}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-md"
+                style={{
+                  background: tag.color,
+                  border: `1px solid ${tag.border}`,
+                }}
               >
-                <MapPin className="h-3 w-3 text-[var(--accent)]" />
-                {tag}
-              </span>
+                <span>{tag.icon}</span>
+                {tag.label}
+              </motion.span>
             ))}
           </motion.div>
         </div>
       </motion.div>
 
+      {/* ── Smoke transition layer ── */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 8, pointerEvents: 'none' }}>
+        <SmokeLayer />
+      </div>
+
       {/* ── Scroll hint ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.1, duration: 0.6 }}
-        style={{ opacity: useTransform(smoothProgress, [0, 0.15], [1, 0]) }}
-        className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1"
+        transition={{ delay: 1.2, duration: 0.6 }}
+        style={{
+          opacity: scrollHintOp,
+          zIndex: 15,
+        }}
+        className="pointer-events-none absolute bottom-5 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1"
       >
-        <motion.svg
-          animate={{ y: [0, 5, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          className="h-5 w-5 text-white/45"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        <motion.div
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="flex flex-col items-center gap-1"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
-        </motion.svg>
+          <div className="scroll-hint-bar" />
+          <div className="scroll-hint-bar" style={{ opacity: 0.5, marginTop: '-2px' }} />
+        </motion.div>
       </motion.div>
     </div>
   );
