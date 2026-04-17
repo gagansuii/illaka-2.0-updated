@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CoffeeRouteLoader } from '@/components/CoffeeRouteLoader';
 
@@ -16,10 +16,28 @@ const RouteTransitionContext = createContext<RouteTransitionContextValue | null>
 const MIN_VISIBLE_MS = 700;
 const FAILSAFE_MS = 8000;
 
-export function RouteTransitionProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+// Isolated component so useSearchParams() is contained inside a Suspense boundary,
+// preventing it from blocking static generation of pages that use this provider.
+function RouteChangeDetector({
+  isTransitioning,
+  onFinish
+}: {
+  isTransitioning: boolean;
+  onFinish: () => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (!isTransitioning) return;
+    onFinish();
+  }, [pathname, searchParams, isTransitioning, onFinish]);
+
+  return null;
+}
+
+export function RouteTransitionProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const transitionStartedAtRef = useRef(0);
   const failsafeTimeoutRef = useRef<number | null>(null);
@@ -58,11 +76,6 @@ export function RouteTransitionProvider({ children }: { children: React.ReactNod
     },
     [router, startTransition]
   );
-
-  useEffect(() => {
-    if (!isTransitioning) return;
-    finishTransition();
-  }, [pathname, searchParams, isTransitioning, finishTransition]);
 
   useEffect(() => {
     function handleDocumentClick(event: MouseEvent) {
@@ -112,6 +125,9 @@ export function RouteTransitionProvider({ children }: { children: React.ReactNod
 
   return (
     <RouteTransitionContext.Provider value={value}>
+      <Suspense fallback={null}>
+        <RouteChangeDetector isTransitioning={isTransitioning} onFinish={finishTransition} />
+      </Suspense>
       {children}
       <AnimatePresence>
         {isTransitioning ? (
